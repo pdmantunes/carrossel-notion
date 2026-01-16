@@ -22,7 +22,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            /* REMOVIDO: transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); */
         }
 
         .carousel-item {
@@ -67,7 +67,7 @@
             track.appendChild(item);
         });
 
-        // Atualiza posição
+        // Atualiza posição (INSTANTÂNEO)
         function updateCarousel() {
             track.style.transform = `translateY(-${currentIndex * 100}vh)`;
         }
