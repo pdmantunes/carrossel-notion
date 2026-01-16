@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrossel com Scroll Vertical</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .carousel-container {
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .carousel-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .carousel-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .carousel-item {
+            width: 100%;
+            height: 100%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f0f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .carousel-item .placeholder {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .indicators {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+        }
+
+        .indicator.active {
+            background: white;
+            width: 24px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .scroll-hint {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 10;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-btn:hover {
+            background: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .counter {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            z-index: 10;
+        }
+
+        @media (max-width: 600px) {
+            .carousel-container {
+                height: 500px;
+            }
+
+            .scroll-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="carousel-container">
+        <div class="carousel-wrapper">
+            <div class="carousel-track" id="carouselTrack">
+                <!-- As imagens serão inseridas aqui via JavaScript -->
+            </div>
+        </div>
+
+        <div class="counter" id="counter">1 / 5</div>
+        
+        <div class="controls">
+            <button class="control-btn" id="prevBtn" title="Anterior">←</button>
+            <button class="control-btn" id="nextBtn" title="Próximo">→</button>
+        </div>
+
+        <div class="scroll-hint" id="scrollHint">
+            ↑ ↓ Deslize para navegar
+        </div>
+
+        <div class="indicators" id="indicators">
+            <!-- Os indicadores serão inseridos aqui -->
+        </div>
+    </div>
+
+    <script>
+        // Array de URLs de imagens - CUSTOMIZE AQUI COM SUAS IMAGENS
+        const images = [
+            'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1470114716159-e389f8712fda?w=500&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1470114716159-e389f8712fda?w=500&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=600&fit=crop'
+        ];
+
+        let currentIndex = 0;
+        let lastScrollTime = 0;
+        const scrollThrottle = 300; // ms entre scrolls
+
+        const track = document.getElementById('carouselTrack');
+        const indicators = document.getElementById('indicators');
+        const counter = document.getElementById('counter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const scrollHint = document.getElementById('scrollHint');
+
+        // Inicializa o carrossel
+        function init() {
+            // Cria os itens das imagens
+            images.forEach((img, index) => {
+                const item = document.createElement('div');
+                item.className = 'carousel-item';
+                
+                const imgElement = document.createElement('img');
+                imgElement.src = img;
+                imgElement.alt = `Imagem ${index + 1}`;
+                imgElement.onerror = () => {
+                    item.innerHTML = `<div class="placeholder">Imagem ${index + 1}<br>(Falha ao carregar)</div>`;
+                };
+                
+                item.appendChild(imgElement);
+                track.appendChild(item);
+
+                // Cria os indicadores
+                const indicator = document.createElement('button');
+                indicator.className = 'indicator';
+                if (index === 0) indicator.classList.add('active');
+                indicator.addEventListener('click', () => goToSlide(index));
+                indicators.appendChild(indicator);
+            });
+
+            updateCarousel();
+        }
+
+        // Atualiza a posição do carrossel
+        function updateCarousel() {
+            track.style.transform = `translateY(-${currentIndex * 100}%)`; // Scroll vertical
+            
+            // Atualiza indicadores
+            document.querySelectorAll('.indicator').forEach((ind, index) => {
+                ind.classList.toggle('active', index === currentIndex);
+            });
+
+            // Atualiza contador
+            counter.textContent = `${currentIndex + 1} / ${images.length}`;
+
+            // Oculta hint após primeira interação
+            if (currentIndex > 0) {
+                scrollHint.style.opacity = '0.3';
+            }
+        }
+
+        // Vai para um slide específico
+        function goToSlide(index) {
+            currentIndex = index;
+            updateCarousel();
+        }
+
+        // Próximo slide
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % images.length;
+            updateCarousel();
+        }
+
+        // Slide anterior
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + images.length) % images.length;
+            updateCarousel();
+        }
+
+        // Event listeners dos botões
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+
+        // Event listener do scroll (throttled)
+        window.addEventListener('wheel', (e) => {
+            const now = Date.now();
+            if (now - lastScrollTime < scrollThrottle) return;
+            
+            lastScrollTime = now;
+            
+            if (e.deltaY > 0) {
+                nextSlide(); // Scroll para baixo = próxima imagem
+            } else if (e.deltaY < 0) {
+                prevSlide(); // Scroll para cima = imagem anterior
+            }
+            
+            e.preventDefault();
+        }, { passive: false });
+
+        // Suporte a touch/swipe para mobile
+        let touchStartY = 0;
+        window.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        });
+
+        window.addEventListener('touchend', (e) => {
+            const touchEndY = e.changedTouches[0].clientY;
+            const diff = touchStartY - touchEndY;
+            
+            if (Math.abs(diff) > 50) { // Mínimo de 50px de movimento
+                if (diff > 0) {
+                    nextSlide(); // Swipe para cima = próxima imagem
+                } else {
+                    prevSlide(); // Swipe para baixo = imagem anterior
+                }
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') {
+                nextSlide();
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                prevSlide();
+                e.preventDefault();
+            }
+        });
+
+        // Inicializa quando o documento está pronto
+        init();
+    </script>
+</body>
+</html>
